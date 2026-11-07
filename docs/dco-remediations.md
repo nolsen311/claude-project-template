@@ -21,3 +21,12 @@ from the project template).
 | --- | --- |
 | `<full sha>` | <subject> |
 -->
+
+## 2026-11-07
+
+The initial template commit, pushed directly to the empty repository before
+branch protection existed (the one documented exception to the pull-request rule).
+
+| Commit | Subject |
+| --- | --- |
+| `a8dbdc511a66e8041b2edcb258dbfd5c1b218b64` | Initial template: DCO workflow, Claude working rules, baseline CI and bootstrap |

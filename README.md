@@ -38,13 +38,15 @@ See [`SECURITY.md`](SECURITY.md) to report a vulnerability.
 
 2. Run the bootstrap script once, as the repository owner. It configures
    everything a template can't copy (rulesets, security settings, the
-   `release` environment) and grants the Claude GitHub App access:
+   `release` environment):
 
    ```bash
    cd NEW_REPO && scripts/bootstrap.sh nolsen311/NEW_REPO
    ```
 
-   Run with `--dry-run` first to see every change without making it.
+   Run with `--dry-run` first to see every change without making it. The
+   script ends with any manual steps, including granting the Claude GitHub
+   App access to the new repository (GitHub doesn't allow that through `gh`).
 
 3. Replace `PROJECT_NAME` and the description above, and record the
    initial commit in [`docs/dco-remediations.md`](docs/dco-remediations.md)
