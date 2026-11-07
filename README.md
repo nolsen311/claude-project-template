@@ -1,0 +1,57 @@
+# PROJECT_NAME
+
+> One-sentence description of what this project does.
+
+**Status:** planning.
+
+## How this project is built
+
+This project is written by [Claude](https://claude.ai/code), Anthropic's AI
+coding assistant, under the oversight of its maintainer
+([@nolsen311](https://github.com/nolsen311)). Every change goes through a pull
+request that the maintainer reviews, signs off under the
+[Developer Certificate of Origin](CONTRIBUTING.md#developer-certificate-of-origin),
+and merges. Claude never merges, never tags releases, and never signs off on
+anyone's behalf. See [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`CLAUDE.md`](CLAUDE.md).
+
+Design decisions are recorded in [`docs/adr/`](docs/adr/).
+
+## Security
+
+See [`SECURITY.md`](SECURITY.md) to report a vulnerability.
+
+## License
+
+[GPL-3.0-or-later](LICENSE).
+
+---
+
+## Using this template
+
+*Delete this section once the project is set up.*
+
+1. Create the repository from the template:
+
+   ```bash
+   gh repo create nolsen311/NEW_REPO --template nolsen311/claude-project-template --public --clone
+   ```
+
+2. Run the bootstrap script once, as the repository owner. It configures
+   everything a template can't copy (rulesets, security settings, the
+   `release` environment) and grants the Claude GitHub App access:
+
+   ```bash
+   cd NEW_REPO && scripts/bootstrap.sh nolsen311/NEW_REPO
+   ```
+
+   Run with `--dry-run` first to see every change without making it.
+
+3. Replace `PROJECT_NAME` and the description above, and record the
+   initial commit in [`docs/dco-remediations.md`](docs/dco-remediations.md)
+   (the bootstrap script prints the entry).
+
+4. Add language-specific CI (lint, tests, builds) and its Dependabot
+   ecosystem, then add those job names to `.github/rulesets/protect-main.json`
+   and re-run the bootstrap script.
+
+5. Start a Claude Code session with the new repository selected.
