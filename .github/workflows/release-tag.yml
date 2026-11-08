@@ -1,0 +1,78 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# "/release" by comment (ADR 0004): when the repository owner comments exactly
+# "/release" on a merged pull request, tag its merge commit with the version in
+# the project's version file at that commit, and start the project's release
+# workflow on the tag. Lets the maintainer publish a release from a phone.
+#
+# Set up per project (README, "Using this template"):
+# - VERSION_FILE: where the version lives. pyproject.toml ([project] version),
+#   Cargo.toml ([package] version), package.json ("version") or a plain VERSION
+#   file. Versions look like 1.2.3; tags are v1.2.3.
+# - RELEASE_WORKFLOW: the file name of the workflow that builds a release from a
+#   v* tag (e.g. release.yml), or empty to only tag. A tag created by this
+#   workflow doesn't trigger "push: tags" workflows, so that workflow must also
+#   accept workflow_dispatch, guarded as ADR 0004 shows.
+#
+# Safety:
+# - Only an exact "/release" comment from the repository owner (checked here and
+#   again in the script). Edited comments don't count.
+# - Never checks out or runs pull request code: it checks out the default
+#   branch, where the script lives, and talks to the API.
+# - Tags only a merged pull request's merge commit that is on the default
+#   branch, whose tested commit passed every check, with a version that is new
+#   and newer than every release.
+
+name: Release by comment
+
+on:
+  # The same reasoning as signoff-merge.yml: issue_comment always runs the
+  # workflow as it is on the default branch, the job checks out only the
+  # default branch, and it acts only on the owner's exact "/release".
+  # Suppressed for this line only, with the maintainer's agreement (ADR 0004).
+  issue_comment:  # zizmor: ignore[dangerous-triggers]
+    types: [created]
+
+permissions: {}
+
+concurrency:
+  group: release-tag
+  cancel-in-progress: false
+
+env:
+  VERSION_FILE: VERSION
+  RELEASE_WORKFLOW: ""
+
+jobs:
+  tag:
+    name: Tag a release
+    if: >-
+      github.event.issue.pull_request &&
+      github.event.comment.user.login == github.repository_owner &&
+      github.event.comment.author_association == 'OWNER' &&
+      startsWith(github.event.comment.body, '/release')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write       # create the tag
+      actions: write        # start the release workflow on it
+      checks: read          # the tested commit's checks
+      pull-requests: read   # the pull request and its merge commit
+      issues: write         # react and explain refusals
+    steps:
+      - uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
+        with:
+          egress-policy: audit
+      # The default branch only: never the pull request's code.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+          sparse-checkout: .github/scripts
+      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const { run } = require(`${process.env.GITHUB_WORKSPACE}/.github/scripts/release-tag.js`);
+            await run({ github, context, core }, {
+              versionFile: process.env.VERSION_FILE,
+              releaseWorkflow: process.env.RELEASE_WORKFLOW,
+            });

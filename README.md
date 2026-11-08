@@ -56,4 +56,9 @@ See [`SECURITY.md`](SECURITY.md) to report a vulnerability.
    ecosystem, then add those job names to `.github/rulesets/protect-main.json`
    and re-run the bootstrap script.
 
+   For releases by comment (ADR 0004), set `VERSION_FILE` (and, once the
+   project has a release workflow, `RELEASE_WORKFLOW`) in
+   `.github/workflows/release-tag.yml`. The release workflow must also accept
+   `workflow_dispatch`, with the guard step shown in ADR 0004.
+
 5. Start a Claude Code session with the new repository selected.
