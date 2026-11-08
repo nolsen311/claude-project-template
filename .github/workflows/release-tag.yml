@@ -1,18 +1,15 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
-# "/release" by comment (ADR 0004): when the repository owner comments exactly
-# "/release" on a merged pull request, tag its merge commit with the version in
-# the project's version file at that commit, and start the project's release
-# workflow on the tag. Lets the maintainer publish a release from a phone.
+# "/release" by comment (ADR 0004, ADR 0005): when the repository owner comments
+# exactly "/release" on a merged pull request, tag its merge commit with the
+# version in the project's version file at that commit. The new tag starts any
+# workflow that runs on v* tags. Lets the maintainer publish a release from a phone.
 #
 # Set up per project (README, "Using this template"):
-# - VERSION_FILE: where the version lives. pyproject.toml ([project] version),
-#   Cargo.toml ([package] version), package.json ("version") or a plain VERSION
-#   file. Versions look like 1.2.3; tags are v1.2.3.
-# - RELEASE_WORKFLOW: the file name of the workflow that builds a release from a
-#   v* tag (e.g. release.yml), or empty to only tag. A tag created by this
-#   workflow doesn't trigger "push: tags" workflows, so that workflow must also
-#   accept workflow_dispatch, guarded as ADR 0004 shows.
+# - VERSION_FILE below: where the version lives. pyproject.toml ([project]
+#   version), Cargo.toml ([package] version), package.json ("version") or a
+#   plain VERSION file. Versions look like 1.2.3; tags are v1.2.3.
+# - The release app (CONTRIBUTING.md, "Release app"): it creates the tags.
 #
 # Safety:
 # - Only an exact "/release" comment from the repository owner (checked here and
@@ -22,6 +19,9 @@
 # - Tags only a merged pull request's merge commit that is on the default
 #   branch, whose tested commit passed every check, with a version that is new
 #   and newer than every release.
+# - The tag is created with a short-lived token from the maintainer's release
+#   app (ADR 0005). The tag ruleset lets only admins and that app create v*
+#   tags, and this is the only workflow that holds the app's key.
 
 name: Release by comment
 
@@ -35,13 +35,12 @@ on:
 
 permissions: {}
 
+env:
+  VERSION_FILE: VERSION
+
 concurrency:
   group: release-tag
   cancel-in-progress: false
-
-env:
-  VERSION_FILE: VERSION
-  RELEASE_WORKFLOW: ""
 
 jobs:
   tag:
@@ -52,9 +51,10 @@ jobs:
       github.event.comment.author_association == 'OWNER' &&
       startsWith(github.event.comment.body, '/release')
     runs-on: ubuntu-24.04
+    # Holds the release app's private key; only the default branch can use it.
+    environment: release-tag
     permissions:
-      contents: write       # create the tag
-      actions: write        # start the release workflow on it
+      contents: read        # the workflow token never writes: the app creates the tag
       checks: read          # the tested commit's checks
       # Reading the pull request, and commenting and reacting on it: comments on a
       # pull request need pull-requests: write, not issues: write.
@@ -70,11 +70,26 @@ jobs:
           ref: ${{ github.event.repository.default_branch }}
           persist-credentials: false
           sparse-checkout: .github/scripts
+      # A short-lived token from the release app (ADR 0005), limited to this
+      # repository and to contents: write. The tag ruleset lets only admins and
+      # this app create v* tags. If the app isn't set up yet, the next step
+      # explains that on the pull request instead of failing silently.
+      - id: app
+        continue-on-error: true
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
       - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          TAG_TOKEN: ${{ steps.app.outputs.token }}
         with:
           script: |
             const { run } = require(`${process.env.GITHUB_WORKSPACE}/.github/scripts/release-tag.js`);
             await run({ github, context, core }, {
               versionFile: process.env.VERSION_FILE,
-              releaseWorkflow: process.env.RELEASE_WORKFLOW,
+              // Tags created with the app's token start "push: tags" workflows
+              // like a tag you push yourself.
+              tagClient: process.env.TAG_TOKEN ? getOctokit(process.env.TAG_TOKEN) : null,
             });

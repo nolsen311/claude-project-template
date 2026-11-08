@@ -1,6 +1,6 @@
 # 0004. Release with a `/release` comment
 
-- Status: Accepted
+- Status: Accepted; how the tag is created, and the release workflow dispatch, are amended by ADR 0005
 - Date: 2026-11-08
 - Amends ADR 0002 (who creates release tags). Builds on ADR 0003 (`/signoff`).
 
